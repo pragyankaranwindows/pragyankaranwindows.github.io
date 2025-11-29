@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GhostDB // Synthetic Profiles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #02040a;
+      --bg2: #050814;
+      --accent: #00ff9c;
+      --accent-soft: rgba(0, 255, 156, 0.15);
+      --text-main: #e5fff2;
+      --text-muted: #6fd0a3;
+      --danger: #ff4b81;
+      --terminal-font: "Fira Code", "JetBrains Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #07121f 0, #010309 60%);
+      color: var(--text-main);
+      font-family: var(--terminal-font);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.25) 1px,
+        transparent 1px
+      );
+      background-size: 100% 3px;
+      opacity: 0.25;
+      mix-blend-mode: soft-light;
+      z-index: 1;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E");
+      z-index: 1;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 950px;
+    }
+
+    .frame {
+      border-radius: 18px;
+      border: 1px solid rgba(0, 255, 156, 0.35);
+      background: radial-gradient(circle at top left, #071b23, #02040a 55%);
+      box-shadow:
+        0 0 40px rgba(0, 0, 0, 0.8),
+        0 0 20px rgba(0, 255, 156, 0.15);
+      padding: 20px 22px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .frame::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: conic-gradient(
+        from 180deg,
+        rgba(0, 255, 156, 0.18),
+        transparent,
+        transparent,
+        rgba(0, 255, 156, 0.05),
+        transparent
+      );
+      opacity: 0;
+      animation: sweep 8s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes sweep {
+      0% { opacity: 0; transform: rotate(0deg); }
+      30% { opacity: 0.9; }
+      80% { opacity: 0; }
+      100% { transform: rotate(360deg); }
+    }
+
+    .frame-inner {
+      position: relative;
+      border-radius: 14px;
+      border: 1px solid rgba(0, 255, 156, 0.15);
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(5, 15, 18, 0.95));
+      padding: 18px 18px 20px;
+    }
+
+    .frame-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(circle at 15% 0%, rgba(0, 255, 156, 0.18), transparent 55%);
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 255, 156, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      text-shadow: 0 0 8px rgba(0, 255, 156, 0.9);
+      box-shadow:
+        0 0 12px rgba(0, 255, 156, 0.4),
+        inset 0 0 8px rgba(0, 255, 156, 0.3);
+    }
+
+    .logo-text-main {
+      font-size: 16px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .logo-text-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.82;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 255, 156, 0.45);
+      padding: 4px 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      background: radial-gradient(circle at top left, rgba(0, 255, 156, 0.18), transparent 65%);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(0, 255, 156, 0.9);
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.3); opacity: 0.4; }
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      opacity: 0.8;
+    }
+
+    .term-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.9);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+    }
+
+    .dot.red { background: #ff4b6a; }
+    .dot.yellow { background: #ffc857; }
+    .dot.green { background: #25d366; }
+
+    .term-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      gap: 16px;
+      position: relative;
+      z-index: 2;
+    }
+
+    @media (max-width: 800px) {
+      body {
+        padding: 14px;
+        align-items: flex-start;
+      }
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .panel {
+      border-radius: 12px;
+      border: 1px solid rgba(0, 255, 156, 0.2);
+      background: radial-gradient(circle at top, rgba(0, 255, 156, 0.07), transparent 60%);
+      padding: 14px 14px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background-image: linear-gradient(
+        135deg,
+        rgba(0, 255, 156, 0.16),
+        transparent,
+        transparent
+      );
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .panel:hover::before {
+      opacity: 0.6;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      letter-spacing: 0.19em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .panel-tag {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--accent);
+      opacity: 0.9;
+    }
+
+    .profile-field {
+      font-size: 13px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .field-label {
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      margin-right: 7px;
+    }
+
+    .field-value {
+      color: var(--text-main);
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .warning {
+      color: var(--danger);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .btn-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn-main {
+      border-radius: 999px;
+      border: 1px solid rgba(0, 255, 156, 0.6);
+      background: radial-gradient(circle at top, rgba(0, 255, 156, 0.25), rgba(0, 0, 0, 0.9));
+      padding: 7px 16px;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-main);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow:
+        0 0 14px rgba(0, 255, 156, 0.45),
+        0 0 0 1px rgba(0, 0, 0, 0.9);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease;
+    }
+
+    .btn-main span {
+      font-size: 14px;
+    }
+
+    .btn-main:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 0 18px rgba(0, 255, 156, 0.7),
+        0 0 0 1px rgba(0, 0, 0, 0.9);
+    }
+
+    .btn-main:active {
+      transform: translateY(0px) scale(0.99);
+      box-shadow:
+        0 0 10px rgba(0, 255, 156, 0.5),
+        0 0 0 1px rgba(0, 0, 0, 0.9);
+    }
+
+    .btn-secondary {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      border-radius: 999px;
+      border: 1px dashed rgba(0, 255, 156, 0.4);
+      padding: 5px 10px;
+      background: rgba(0, 0, 0, 0.6);
+      opacity: 0.85;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: var(--accent);
+      margin-left: 3px;
+      animation: blink 1.1s steps(1, end) infinite;
+      border-radius: 2px;
+      box-shadow: 0 0 10px rgba(0, 255, 156, 0.9);
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    .footer {
+      margin-top: 10px;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: right;
+      opacity: 0.75;
+    }
+
+    .footer span {
+      color: var(--accent);
+    }
+
+    .glitch {
+      position: relative;
+      display: inline-block;
+    }
+
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0.65;
+      clip-path: inset(0 0 50% 0);
+    }
+
+    .glitch::before {
+      transform: translate(-1px, -1px);
+      text-shadow: -1px 0 #ff00c1;
+      animation: glitch-top 2.4s infinite linear alternate-reverse;
+    }
+
+    .glitch::after {
+      transform: translate(1px, 1px);
+      text-shadow: 1px 0 #00fff9;
+      animation: glitch-bottom 2.4s infinite linear alternate-reverse;
+    }
+
+    @keyframes glitch-top {
+      0% { clip-path: inset(0 0 0 0); }
+      20% { clip-path: inset(0 0 40% 0); }
+      40% { clip-path: inset(10% 0 30% 0); }
+      60% { clip-path: inset(15% 0 25% 0); }
+      80% { clip-path: inset(10% 0 30% 0); }
+      100% { clip-path: inset(0 0 0 0); }
+    }
+
+    @keyframes glitch-bottom {
+      0% { clip-path: inset(50% 0 0 0); }
+      20% { clip-path: inset(60% 0 0 0); }
+      40% { clip-path: inset(70% 0 0 0); }
+      60% { clip-path: inset(65% 0 0 0); }
+      80% { clip-path: inset(70% 0 0 0); }
+      100% { clip-path: inset(50% 0 0 0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="scanlines"></div>
+  <div class="noise"></div>
+
+  <div class="wrapper">
+    <div class="frame">
+      <div class="frame-inner">
+        <div class="frame-glow"></div>
+
+        <header>
+          <div class="logo">
+            <div class="logo-mark">G</div>
+            <div>
+              <div class="logo-text-main glitch" data-text="GHOST-DB">GHOST-DB</div>
+              <div class="logo-text-sub">Synthetic Identity Sandbox</div>
+            </div>
+          </div>
+          <div class="status-pill">
+            <div class="status-dot"></div>
+            <span>Generator // Online</span>
+          </div>
+        </header>
+
+        <div class="terminal-bar">
+          <div class="term-dots">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+          </div>
+          <div class="term-label">ALL DATA IS RANDOM &amp; FAKE // FOR FUN &amp; TESTING</div>
+        </div>
+
+        <div class="grid">
+          <!-- LEFT: identity panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">PROFILE // CORE</div>
+              <div class="panel-tag">ENTITY: <span id="profile-id">#0000</span></div>
+            </div>
+
+            <div class="profile-field">
+              <span class="field-label">Name</span>
+              <span class="field-value" id="name">—</span>
+            </div>
+            <div class="profile-field">
+              <span class="field-label">Alias</span>
+              <span class="field-value" id="alias">—</span>
+            </div>
+            <div class="profile-field">
+              <span class="field-label">Email</span>
+              <span class="field-value" id="email">—</span>
+            </div>
+            <div class="profile-field">
+              <span class="field-label">Location</span>
+              <span class="field-value" id="location">—</span>
+            </div>
+            <div class="profile-field">
+              <span class="field-label">Address</span>
+              <span class="field-value" id="address">—</span>
+            </div>
+            <div class="profile-field">
+              <span class="field-label">Phone</span>
+              <span class="field-value" id="phone">—</span>
+            </div>
+
+            <div class="profile-field" style="margin-top: 6px;">
+              <span class="field-label">Role</span>
+              <span class="field-value" id="role">—</span>
+            </div>
+            <div class="profile-field">
+              <span class="field-label">Status</span>
+              <span class="field-value" id="status">—</span>
+            </div>
+          </div>
+
+          <!-- RIGHT: meta / system panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">PROFILE // META</div>
+              <div class="panel-tag">SESSION LOG</div>
+            </div>
+
+            <div class="profile-field">
+              <span class="field-label">Last Seen</span>
+              <span class="field-value" id="last-seen">—</span>
+            </div>
+            <div class="profile-field">
+              <span class="field-label">IP (fake)</span>
+              <span class="field-value" id="ip">—</span>
+            </div>
+            <div class="profile-field">
+              <span class="field-label">User Agent</span>
+              <span class="field-value" id="ua">—</span>
+            </div>
+            <div class="profile-field">
+              <span class="field-label">Risk Level</span>
+              <span class="field-value" id="risk">—</span>
+            </div>
+
+            <div style="margin-top: 10px;">
+              <div class="muted">
+                This page only generates <strong>synthetic identities</strong> for
+                testing UI, fiction, and learning. Any match with real people is
+                pure coincidence.
+              </div>
+              <div class="warning" style="margin-top: 6px;">
+                DO NOT USE FOR REAL-WORLD SCAMS, FRAUD OR IMPERSONATION.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-main" id="generate-btn">
+            <span>▶</span> GENERATE NEW PROFILE
+          </button>
+          <div class="btn-secondary">
+            > ghost-db random-profile --count=1
+            <span class="cursor"></span>
+          </div>
+        </div>
+
+        <div class="footer">
+          synthetic data engine // maintained by <span>alpha-117</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // simple pseudo-random helper
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function pick(arr) {
+      return arr[randInt(0, arr.length - 1)];
+    }
+
+    const firstNames = [
+      "Aarav","Maya","Riya","Liam","Noah","Ishan","Zara","Arjun",
+      "Kian","Sara","Dev","Nora","Kabir","Esha","Rayan","Ira"
+    ];
+
+    const lastNames = [
+      "Sharma","Patel","Mehta","Verma","Singh","Khan","Desai","Kapoor",
+      "Das","Roy","Bose","Malik","Jain","Fernandes","Gupta","Yadav"
+    ];
+
+    const aliases = [
+      "ghostline","zeroTrace","nullbyte","cipherKid","shadowloop",
+      "hexspectre","rootling","neon_ghost","byteveil","voidpulse"
+    ];
+
+    const domains = [
+      "example.net","ghostmail.dev","sandbox.io","demo.zone","lab.fake"
+    ];
+
+    const cities = [
+      "Mumbai","Delhi","Bengaluru","Hyderabad","Pune",
+      "London","Berlin","Singapore","Tokyo","Dubai"
+    ];
+
+    const countries = [
+      "India","India","India","Germany","United Kingdom",
+      "Singapore","Japan","United Arab Emirates"
+    ];
+
+    const streets = [
+      "Static Lane","Phantom Street","Echo Avenue","Matrix Road",
+      "Sandbox Circle","Neon Drive","Proxy Street","Cipher Avenue"
+    ];
+
+    const roles = [
+      "Security Researcher","Network Analyst","Game QA Tester",
+      "Backend Developer","UI Prototype Tester","Data Labeling Intern",
+      "Automation Script Runner","Bug Bounty Learner"
+    ];
+
+    const statuses = [
+      "Idle","Analysing Logs","Watching Network","Compiling Reports",
+      "Sandboxed","AFK","In Training"
+    ];
+
+    const riskLevels = [
+      "LOW // benign activity",
+      "LOW // learner profile",
+      "MEDIUM // unusual patterns",
+      "MEDIUM // noisy traffic",
+      "HIGH // suspicious sandbox",
+      "INFO // test subject"
+    ];
+
+    function randomIp() {
+      return [
+        randInt(10, 250),
+        randInt(0, 255),
+        randInt(0, 255),
+        randInt(1, 254)
+      ].join(".");
+    }
+
+    function randomPhone() {
+      // uses 555 to avoid real-world numbers
+      return "+1 (555) " + randInt(100, 999) + "-" + randInt(1000, 9999);
+    }
+
+    function randomUserAgent() {
+      const os = pick([
+        "Windows 11","Ubuntu 24.04","Android 14","macOS 15","Kali Rolling"
+      ]);
+      const browser = pick([
+        "Chromium/120.0","Firefox/118.0","Edge/120.0","Brave/1.63"
+      ]);
+      return os + " // " + browser;
+    }
+
+    function randomDateString() {
+      const now = new Date();
+      const daysAgo = randInt(0, 14);
+      const hoursDiff = randInt(0, 23);
+      const d = new Date(now.getTime() - (daysAgo * 24 + hoursDiff) * 60 * 60 * 1000);
+      return d.toISOString().slice(0, 19).replace("T", " ");
+    }
+
+    function generateProfile() {
+      const first = pick(firstNames);
+      const last = pick(lastNames);
+      const username = pick(aliases) + randInt(0, 99).toString().padStart(2, "0");
+      const domain = pick(domains);
+      const city = pick(cities);
+      const country = pick(countries);
+      const streetNum = randInt(11, 989);
+      const streetName = pick(streets);
+      const profileId = "#" + randInt(1000, 9999);
+
+      document.getElementById("profile-id").textContent = profileId;
+      document.getElementById("name").textContent = first + " " + last;
+      document.getElementById("alias").textContent = username;
+      document.getElementById("email").textContent = username + "@" + domain;
+      document.getElementById("location").textContent = city + ", " + country;
+      document.getElementById("address").textContent =
+        streetNum + " " + streetName + ", " + city;
+      document.getElementById("phone").textContent = randomPhone();
+      document.getElementById("role").textContent = pick(roles);
+      document.getElementById("status").textContent = pick(statuses);
+      document.getElementById("last-seen").textContent = randomDateString();
+      document.getElementById("ip").textContent = randomIp();
+      document.getElementById("ua").textContent = randomUserAgent();
+      document.getElementById("risk").textContent = pick(riskLevels);
+    }
+
+    document.getElementById("generate-btn").addEventListener("click", generateProfile);
+
+    // generate first profile on load
+    generateProfile();
+  </script>
+</body>
+</html>
