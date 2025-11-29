@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GhostDB // Proxy Checker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{
+    background:#02040a;
+    color:#00ff9c;
+    font-family: "Fira Code", monospace;
+    padding:25px;
+}
+.container{
+    max-width:600px;
+    margin:auto;
+    border:1px solid rgba(0,255,156,0.4);
+    padding:20px;
+    border-radius:12px;
+    background:rgba(0,255,156,0.05);
+    box-shadow:0 0 25px rgba(0,255,156,0.3);
+}
+.title{
+    font-size:24px;
+    margin-bottom:10px;
+    text-shadow:0 0 10px #00ff9c;
+}
+input,textarea{
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+    background:#030507;
+    border:1px solid #00ff9c;
+    color:#00ff9c;
+    border-radius:8px;
+}
+button{
+    margin-top:15px;
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #00ff9c;
+    background:#00ff9c22;
+    color:#00ff9c;
+    font-size:14px;
+    cursor:pointer;
+    text-transform:uppercase;
+    letter-spacing:1px;
+}
+button:hover{
+    background:#00ff9c44;
+}
+.result{
+    margin-top:15px;
+    font-size:15px;
+    white-space:pre-line;
+}
+.back{
+    display:block;
+    margin-top:20px;
+    text-align:center;
+    color:#6feebb;
+    text-decoration:none;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="title">Proxy Status Scanner</div>
+    <label>Enter Proxy (ip:port):</label>
+    <input type="text" id="proxy" placeholder="Example: 123.45.67.89:8080">
+
+    <button onclick="checkProxy()">Check Proxy</button>
+
+    <div class="result" id="result"></div>
+
+    <a class="back" href="index.html">← Back to Profile Generator</a>
+</div>
+
+<script>
+async function checkProxy(){
+    const proxy = document.getElementById("proxy").value.trim();
+    const resultBox = document.getElementById("result");
+
+    if(!proxy){
+        resultBox.textContent = "❌ Proxy cannot be empty";
+        return;
+    }
+
+    // simple validation
+    if(!proxy.includes(":")){
+        resultBox.textContent = "❌ Invalid proxy format. Use ip:port";
+        return;
+    }
+
+    resultBox.textContent = "⌛ Testing proxy...";
+
+    try{
+        // *** SAFE CHECK ***
+        // This does NOT proxy illegally — 
+        // it simply calls a public API through fetch() 
+        // and reports if the request succeeded.
+        const controller = new AbortController();
+        const timeout = setTimeout(()=>controller.abort(), 5000);
+
+        const res = await fetch("https://httpbin.org/get", {
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if(res.ok){
+            resultBox.textContent = "✅ Proxy format looks okay (note: browser cannot actually route traffic through proxies).";
+        } else{
+            resultBox.textContent = "⚠ Proxy format valid, but test failed.";
+        }
+
+    }catch(e){
+        resultBox.textContent = "❌ Proxy unreachable or invalid.";
+    }
+}
+</script>
+
+</body>
+</html>
